@@ -1,6 +1,6 @@
 # release-the-purple-squid
 
-<img width="1024" height="1024" alt="purple" src="https://github.com/user-attachments/assets/99bfe39b-4348-4fcb-a4a2-312496429e2d" />
+<img width="524" height="524" alt="purple" src="https://github.com/user-attachments/assets/99bfe39b-4348-4fcb-a4a2-312496429e2d" />
 
 Purple Squid, a next-Generation Cybersecurity Orchestration Tool for Penetration Testing. Purple Squid: A Next-Generation Cybersecurity Orchestration Tool for Penetration Testing
 
