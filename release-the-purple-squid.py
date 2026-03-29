@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 🐙 SQUIDBOT V5 - Ultimate Cybersecurity Command & Control Server
-Author: Advanced Security Framework
+Author: AIan Carter Kulani
 Version: 5.0.0
 Description: Complete penetration testing & network analysis platform with multi-platform bot integration
 
