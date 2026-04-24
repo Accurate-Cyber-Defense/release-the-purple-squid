@@ -1,0 +1,121 @@
+# SQUIDBOT V5 - Alpine Docker Image
+FROM alpine:3.19
+
+LABEL maintainer="SquidBot Team"
+LABEL description="SQUIDBOT V5 - Ultimate Cybersecurity Command & Control Server"
+LABEL version="5.0.0"
+
+# Install system dependencies
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+    python3 \
+    py3-pip \
+    py3-numpy \
+    py3-matplotlib \
+    bash \
+    git \
+    nmap \
+    nmap-scripts \
+    curl \
+    wget \
+    netcat-openbsd \
+    openssh-client \
+    openssh-server \
+    bind-tools \
+    whois \
+    hping3 \
+    arp-scan \
+    dsniff \
+    tcpdump \
+    iproute2 \
+    net-tools \
+    ethtool \
+    macchanger \
+    ettercap \
+    dnschef \
+    tcptraceroute \
+    traceroute \
+    iperf3 \
+    mtr \
+    nload \
+    iftop \
+    tshark \
+    socat \
+    proxychains-ng \
+    sqlite \
+    && rm -rf /var/cache/apk/*
+
+# Create working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python packages
+RUN pip3 install --no-cache-dir -r requirements.txt && \
+    pip3 install --no-cache-dir \
+    scapy \
+    paramiko \
+    colorama \
+    reportlab \
+    matplotlib \
+    seaborn \
+    numpy \
+    pandas \
+    requests \
+    flask \
+    flask-socketio \
+    eventlet \
+    python-socketio \
+    aiohttp \
+    aiodns \
+    dnspython \
+    shodan \
+    python-whois \
+    pyshorteners \
+    qrcode \
+    pillow \
+    beautifulsoup4 \
+    lxml \
+    requests-html \
+    dnspython \
+    netifaces \
+    psutil \
+    pycryptodome \
+    stem \
+    twisted \
+    scrapy \
+    selenium \
+    pyvirtualdisplay \
+    phonenumbers \
+    validators \
+    email-validator \
+    tldextract
+
+# Create necessary directories
+RUN mkdir -p /app/.squidbot /app/reports /app/reports/scans /app/reports/graphics \
+    /app/.squidbot/phishing /app/.squidbot/credentials /app/.squidbot/ssh_keys \
+    /app/.squidbot/traffic_logs /app/.squidbot/whatsapp_session /app/logs
+
+# Copy application files
+COPY . .
+
+# Set permissions
+RUN chmod +x squidbot.py && \
+    chmod +x install.sh && \
+    chmod +x scripts/*.sh 2>/dev/null || true
+
+# Configure environment
+ENV PYTHONUNBUFFERED=1
+ENV SQUIDBOT_HOME=/app
+ENV PATH="/app/scripts:${PATH}"
+
+# Expose ports
+EXPOSE 8080 5000 8000 8081 8082 8083
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python3 -c "import socket; socket.create_connection(('localhost', 8080), timeout=5)" || exit 1
+
+# Run the application
+CMD ["python3", "squidbot.py"]

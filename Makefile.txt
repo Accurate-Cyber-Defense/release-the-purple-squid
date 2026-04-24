@@ -1,0 +1,184 @@
+.PHONY: help install build run clean test docker-build docker-run docker-stop deploy backup restore logs shell
+
+# Variables
+PROJECT_NAME := squidbot
+VERSION := 5.0.0
+DOCKER_COMPOSE := docker-compose
+PYTHON := python3
+PIP := pip3
+
+# Colors
+GREEN := \033[0;32m
+RED := \033[0;31m
+YELLOW := \033[1;33m
+NC := \033[0m
+
+help:
+	@echo "$(GREEN)SQUIDBOT V5 - Makefile Commands$(NC)"
+	@echo "======================================"
+	@echo "$(YELLOW)Installation:$(NC)"
+	@echo "  install          - Install dependencies"
+	@echo "  install-full     - Install with all features"
+	@echo "  install-dev      - Install development dependencies"
+	@echo ""
+	@echo "$(YELLOW)Running:$(NC)"
+	@echo "  run              - Run SQUIDBOT locally"
+	@echo "  start            - Start with Docker"
+	@echo "  stop             - Stop Docker containers"
+	@echo "  restart          - Restart Docker containers"
+	@echo ""
+	@echo "$(YELLOW)Docker:$(NC)"
+	@echo "  docker-build     - Build Docker image"
+	@echo "  docker-run       - Run Docker container"
+	@echo "  docker-stop      - Stop Docker container"
+	@echo "  docker-logs      - View Docker logs"
+	@echo ""
+	@echo "$(YELLOW)Testing:$(NC)"
+	@echo "  test             - Run tests"
+	@echo "  test-coverage    - Run tests with coverage"
+	@echo "  lint             - Run linter"
+	@echo ""
+	@echo "$(YELLOW)Maintenance:$(NC)"
+	@echo "  clean            - Clean temporary files"
+	@echo "  backup           - Backup database and config"
+	@echo "  restore          - Restore from backup"
+	@echo "  update           - Update to latest version"
+	@echo ""
+	@echo "$(YELLOW)Utilities:$(NC)"
+	@echo "  shell            - Open Python shell"
+	@echo "  logs             - View application logs"
+	@echo "  status           - Check service status"
+	@echo "  health           - Check system health"
+
+# Installation
+install:
+	@echo "$(GREEN)Installing SQUIDBOT V5...$(NC)"
+	$(PIP) install --upgrade pip
+	$(PIP) install -r requirements.txt
+	@chmod +x install.sh
+	@./install.sh
+	@echo "$(GREEN)✅ Installation complete!$(NC)"
+
+install-full:
+	@echo "$(GREEN)Installing SQUIDBOT V5 with all features...$(NC)"
+	bash install.sh --full
+
+install-dev:
+	@echo "$(GREEN)Installing development dependencies...$(NC)"
+	$(PIP) install -r requirements.txt
+	$(PIP) install black flake8 mypy pre-commit pytest pytest-cov
+	pre-commit install
+
+# Running
+run:
+	@echo "$(GREEN)Starting SQUIDBOT V5...$(NC)"
+	$(PYTHON) squidbot.py
+
+start:
+	@echo "$(GREEN)Starting Docker containers...$(NC)"
+	$(DOCKER_COMPOSE) up -d
+	@echo "$(GREEN)✅ SQUIDBOT is running!$(NC)"
+	@echo "Access at: http://localhost:8080"
+
+stop:
+	@echo "$(YELLOW)Stopping Docker containers...$(NC)"
+	$(DOCKER_COMPOSE) down
+
+restart: stop start
+
+# Docker
+docker-build:
+	@echo "$(GREEN)Building Docker image...$(NC)"
+	docker build -f Dockerfile.alpine -t $(PROJECT_NAME):$(VERSION) -t $(PROJECT_NAME):latest .
+
+docker-run:
+	@echo "$(GREEN)Running Docker container...$(NC)"
+	docker run -d --name $(PROJECT_NAME) --privileged --network host \
+		-v $$(pwd)/data:/app/.squidbot \
+		-v $$(pwd)/reports:/app/reports \
+		$(PROJECT_NAME):latest
+
+docker-stop:
+	@echo "$(YELLOW)Stopping Docker container...$(NC)"
+	docker stop $(PROJECT_NAME) || true
+	docker rm $(PROJECT_NAME) || true
+
+docker-logs:
+	docker logs -f $(PROJECT_NAME)
+
+docker-shell:
+	docker exec -it $(PROJECT_NAME) /bin/bash
+
+# Testing
+test:
+	@echo "$(GREEN)Running tests...$(NC)"
+	pytest tests/ -v
+
+test-coverage:
+	@echo "$(GREEN)Running tests with coverage...$(NC)"
+	pytest tests/ --cov=squidbot --cov-report=html --cov-report=term
+	@echo "$(GREEN)Coverage report generated in htmlcov/$(NC)"
+
+lint:
+	@echo "$(GREEN)Running linter...$(NC)"
+	flake8 squidbot.py --max-line-length=120 --ignore=E501
+	black --check squidbot.py
+
+# Maintenance
+clean:
+	@echo "$(YELLOW)Cleaning temporary files...$(NC)"
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete
+	find . -type f -name "*.pyo" -delete
+	find . -type f -name "*.so" -delete
+	rm -rf .pytest_cache/
+	rm -rf .coverage
+	rm -rf htmlcov/
+	rm -rf build/
+	rm -rf dist/
+	rm -rf *.egg-info/
+	@echo "$(GREEN)✅ Clean complete!$(NC)"
+
+backup:
+	@echo "$(GREEN)Creating backup...$(NC)"
+	@mkdir -p backups
+	@tar -czf backups/squidbot-backup-$$(date +%Y%m%d-%H%M%S).tar.gz \
+		.squidbot/ reports/ config/ logs/ 2>/dev/null || true
+	@echo "$(GREEN)✅ Backup created in backups/$(NC)"
+
+restore:
+	@echo "$(YELLOW)Restoring from backup...$(NC)"
+	@read -p "Enter backup file path: " backup_file; \
+	if [ -f "$$backup_file" ]; then \
+		tar -xzf "$$backup_file" -C /; \
+		echo "$(GREEN)✅ Restore complete!$(NC)"; \
+	else \
+		echo "$(RED)❌ Backup file not found!$(NC)"; \
+	fi
+
+update:
+	@echo "$(GREEN)Updating SQUIDBOT...$(NC)"
+	git pull origin main
+	$(PIP) install --upgrade -r requirements.txt
+	@echo "$(GREEN)✅ Update complete!$(NC)"
+
+# Utilities
+shell:
+	@echo "$(GREEN)Opening Python shell...$(NC)"
+	$(PYTHON) -c "import squidbot; print('SQUIDBOT V5 - Interactive Shell'); import code; code.interact(local=locals())"
+
+logs:
+	tail -f logs/squidbot.log
+
+status:
+	@echo "$(GREEN)SQUIDBOT V5 Status$(NC)"
+	@echo "====================="
+	@docker ps --filter "name=$(PROJECT_NAME)" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "Docker not running"
+	@echo ""
+	@ps aux | grep -E "squidbot|python.*squidbot" | grep -v grep || echo "No local processes running"
+
+health:
+	@echo "$(GREEN)Checking system health...$(NC)"
+	@curl -s http://localhost:8080/status || echo "❌ Web server not responding"
+	@echo ""
+	@$(PYTHON) -c "import psutil; print(f'CPU: {psutil.cpu_percent()}% | RAM: {psutil.virtual_memory().percent}% | Disk: {psutil.disk_usage(\"/\").percent}%')"
