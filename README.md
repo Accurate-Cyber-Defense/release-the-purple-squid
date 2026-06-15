@@ -42,4 +42,7 @@ cd release-the-purple-squid
 python release-the-purple-squid.py
 ```
 
+# Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=Accurate-Cyber-Defense/release-the-purple-squid&type=Date)](https://star-history.com/#Accurate-Cyber-Defense/release-the-purple-squid&Date)
+
  
